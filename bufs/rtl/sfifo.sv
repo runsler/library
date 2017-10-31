@@ -112,6 +112,57 @@ generate
 	end
 endgenerate
 
-endmodule
+endmodule//tokens_sfifo
+
+module tokens_sfifo_bps #(
+	parameter DP = 8,
+	parameter DW = 32
+)(
+	input           clk,    // Clock
+	input           rst_n,  // Asynchronous reset active low
+
+	input 	        src_vld,
+	output          src_rdy,
+	input [DW-1:0]  src_dat,
+
+	output          dst_vld,
+	input           dst_rdy,
+	output [DW-1:0] dst_dat
+);
+
+  wire          fifo_src_vld;
+  wire          fifo_src_rdy;
+  wire [DW-1:0] fifo_src_dat;
+
+  wire          fifo_dst_vld;
+  wire          fifo_dst_rdy;
+  wire [DW-1:0] fifo_dst_dat;
+
+  tokens_sfifo #(.DW(DW), .DP(DP), .FWFT(1))
+  i_tokens_sfifo (
+	.clk    (clk         ),
+	.rst_n  (rst_n       ),
+	.src_vld(fifo_src_vld),
+	.src_rdy(fifo_src_rdy),
+	.src_dat(fifo_src_dat),
+	.dst_vld(fifo_dst_vld),
+	.dst_rdy(fifo_dst_rdy),
+	.dst_dat(fifo_dst_dat)
+);
+
+  assign src_rdy = fifo_src_rdy;
+
+  wire byp = src_vld & dst_rdy & (~fifo_dst_vld);
+
+  assign dst_vld = fifo_dst_vld | src_vld;
+
+  assign dst_dat = fifo_dst_vld ? fifo_dst_dat : src_dat;
+
+  assign fifo_src_dat  = src_dat;
+
+  assign fifo_src_vld = src_vld & (~byp);
+
+endmodule//tokens_sfifo_bps
+
 
 `endif// __SFIFO__
